@@ -1,0 +1,17 @@
+The original code was running 80000 objects in 5hrs
+After a cache change it was running in 8hrs
+Then after optimization it went down to 4rhs
+All the objects couldn't be processed at the same time, so they were sent in batches of 100
+The analyzis showed that 80% of the time was spent saving the objects
+Saving the object was done last, so everything before is updating the existing entities
+A little of math can give us the approximate timing per object :
+ - 4hrs x 60mins x 60secs = 14400sec
+ - 14400 / 80000 = 0.18 sec per object
+ - 0.18 * 0.8 = 0.144sec per save
+ - 0.18 - 0.144 = 0.036sec per update
+
+It was obvious that saving all the time was slowing things down, especially since only a small part of the objects needed to be updated or created.
+Thus the solution was to try and load an existing object with the same id from DB and check if there are differences.
+If no differences were found, go to next object.
+It there are differences, update the entity and save.
+If there are no pre-existing objects yet, format the data and save it
